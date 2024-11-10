@@ -191,34 +191,25 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 
-	for {
-		select {
-		case message, ok := <-c.send:
-			if !ok {
-				log.Printf("Client %s send channel closed", c.name)
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			log.Printf("writePump received message for client %s: %s", c.name, string(message))
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				log.Printf("Error getting writer for client %s: %v", c.name, err)
-				return
-			}
-
-			_, err = w.Write(message)
-			if err != nil {
-				log.Printf("Error writing message for client %s: %v", c.name, err)
-				return
-			}
-
-			if err := w.Close(); err != nil {
-				log.Printf("Error closing writer for client %s: %v", c.name, err)
-				return
-			}
-			log.Printf("Successfully wrote message to websocket for client %s", c.name)
+	for message := range c.send {
+		log.Printf("writePump received message for client %s: %s", c.name, string(message))
+		w, err := c.conn.NextWriter(websocket.TextMessage)
+		if err != nil {
+			log.Printf("Error getting writer for client %s: %v", c.name, err)
+			return
 		}
+
+		_, err = w.Write(message)
+		if err != nil {
+			log.Printf("Error writing message for client %s: %v", c.name, err)
+			return
+		}
+
+		if err := w.Close(); err != nil {
+			log.Printf("Error closing writer for client %s: %v", c.name, err)
+			return
+		}
+		log.Printf("Successfully wrote message to websocket for client %s", c.name)
 	}
 }
 
