@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' ws://localhost:8080; script-src 'self' 'unsafe-inline'"
+    />
+
+    <title>Chatroom</title>
+  </head>
+  <body>
+    <div id="messages"></div>
+
+    <input type="text" id="message" />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+      const ws = new WebSocket("ws://localhost:8080/ws?room=general");
+      const messagesDiv = document.getElementById("messages");
+
+      function addMessage(author, text) {
+        const p = document.createElement("p");
+        p.textContent = text;
+        const s = document.createElement("span");
+        s.textContent = author;
+        p.appendChild(s);
+        messagesDiv.appendChild(p);
+      }
+
+      function sendMessage() {
+        const message = document.getElementById("message").value;
+        document.getElementById("message").value = "";
+        ws.send(message);
+      }
+
+      ws.onopen = () => {
+        console.log("Connected to room");
+        ws.send("Hello everyone!");
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const message = JSON.parse(evt.data);
+          console.log(`${message.sender}: ${message.content}`);
+          addMessage(message.sender, message.content);
+        } catch (e) {
+          console.error("Error parsing message:", e);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket Error:", error);
+      };
+
+      ws.onclose = (event) => {
+        console.log("Connection closed:", event.code, event.reason);
+      };
+    </script>
+  </body>
+</html>
